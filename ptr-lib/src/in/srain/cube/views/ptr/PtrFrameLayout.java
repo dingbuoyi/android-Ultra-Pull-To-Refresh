@@ -288,6 +288,9 @@ public class PtrFrameLayout extends ViewGroup {
                     onRelease(false);
                     if (mPtrIndicator.hasMovedAfterPressedDown()) {
                         sendCancelEvent();
+                        if (onReleaseListener != null && mStatus != PTR_STATUS_PREPARE && mStatus != PTR_STATUS_COMPLETE) {
+                            onReleaseListener.release();
+                        }
                         return true;
                     }
                     return dispatchTouchEventSupper(e);
@@ -1041,6 +1044,21 @@ public class PtrFrameLayout extends ViewGroup {
             mScroller.startScroll(0, 0, 0, distance, duration);
             post(this);
             mIsRunning = true;
+        }
+
+        // add by dean
+        public interface OnReleaseListener {
+            void release();
+        }
+
+        private OnReleaseListener onReleaseListener;
+
+        public void tryToScrollTo(int to, int duration) {
+            mScrollChecker.tryToScrollTo(to, duration);
+        }
+
+        public void addOnReleaseListener(OnReleaseListener onReleaseListener) {
+            this.onReleaseListener = onReleaseListener;
         }
     }
 }
