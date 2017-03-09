@@ -6,6 +6,7 @@ import android.util.AttributeSet;
 import android.view.*;
 import android.widget.Scroller;
 import android.widget.TextView;
+
 import in.srain.cube.views.ptr.indicator.PtrIndicator;
 import in.srain.cube.views.ptr.util.PtrCLog;
 
@@ -68,6 +69,7 @@ public class PtrFrameLayout extends ViewGroup {
             performRefreshComplete();
         }
     };
+    private boolean mIsBeingDragged = false;
 
     public PtrFrameLayout(Context context) {
         this(context, null);
@@ -107,7 +109,7 @@ public class PtrFrameLayout extends ViewGroup {
         mScrollChecker = new ScrollChecker();
 
         final ViewConfiguration conf = ViewConfiguration.get(getContext());
-        mPagingTouchSlop = conf.getScaledTouchSlop() * 2;
+        mPagingTouchSlop = conf.getScaledTouchSlop();
     }
 
     @Override
@@ -280,6 +282,7 @@ public class PtrFrameLayout extends ViewGroup {
         switch (action) {
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                mIsBeingDragged = false;
                 mPtrIndicator.onRelease();
                 if (mPtrIndicator.hasLeftStartPosition()) {
                     if (DEBUG) {
@@ -299,6 +302,7 @@ public class PtrFrameLayout extends ViewGroup {
                 }
 
             case MotionEvent.ACTION_DOWN:
+                mIsBeingDragged = false;
                 mHasSendCancelEvent = false;
                 mPtrIndicator.onPressDown(e.getX(), e.getY());
 
@@ -317,8 +321,8 @@ public class PtrFrameLayout extends ViewGroup {
                 float offsetX = mPtrIndicator.getOffsetX();
                 float offsetY = mPtrIndicator.getOffsetY();
 
-                if (mDisableWhenHorizontalMove && !mPreventForHorizontal && (Math.abs(offsetX) > mPagingTouchSlop && Math.abs(offsetX) > Math.abs(offsetY))) {
-                    if (mPtrIndicator.isInStartPosition()) {
+                if (mDisableWhenHorizontalMove && !mPreventForHorizontal && (Math.abs(mPtrIndicator.getDistanceX()) > mPagingTouchSlop && Math.abs(offsetX) > Math.abs(offsetY))) {
+                    if (Math.abs(mPtrIndicator.getDistanceY()) < mPagingTouchSlop) {
                         mPreventForHorizontal = true;
                     }
                 }
@@ -326,6 +330,7 @@ public class PtrFrameLayout extends ViewGroup {
                     return dispatchTouchEventSupper(e);
                 }
 
+                mIsBeingDragged = mIsBeingDragged || Math.abs(mPtrIndicator.getDistanceY()) > mPagingTouchSlop;
                 boolean moveDown = offsetY > 0;
                 boolean moveUp = !moveDown;
                 boolean canMoveUp = mPtrIndicator.hasLeftStartPosition();
@@ -340,7 +345,7 @@ public class PtrFrameLayout extends ViewGroup {
                     return dispatchTouchEventSupper(e);
                 }
 
-                if ((moveUp && canMoveUp) || moveDown) {
+                if (((moveUp && canMoveUp) || moveDown) && mIsBeingDragged) {
                     movePos(offsetY);
                     return true;
                 }
@@ -1045,20 +1050,20 @@ public class PtrFrameLayout extends ViewGroup {
             post(this);
             mIsRunning = true;
         }
+    }
 
-        // add by dean
-        public interface OnReleaseListener {
-            void release();
-        }
+    //add by dean 
+    public interface OnReleaseListener {
+        void release();
+    }
 
-        private OnReleaseListener onReleaseListener;
+    private OnReleaseListener onReleaseListener;
 
-        public void tryToScrollTo(int to, int duration) {
-            mScrollChecker.tryToScrollTo(to, duration);
-        }
+    public void tryToScrollTo(int to, int duration) {
+        mScrollChecker.tryToScrollTo(to, duration);
+    }
 
-        public void addOnReleaseListener(OnReleaseListener onReleaseListener) {
-            this.onReleaseListener = onReleaseListener;
-        }
+    public void addOnReleaseListener(OnReleaseListener onReleaseListener) {
+        this.onReleaseListener = onReleaseListener;
     }
 }
